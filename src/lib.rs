@@ -3,17 +3,17 @@ use sha2::{Digest, Sha256, Sha512};
 
 const WORDS: &str = include_str!("../words.txt");
 
-fn checksum_bits(ms_length: u8) -> usize {
+fn checksum_bits(ms_length: usize) -> usize {
   // CS in bits
-  ms_length as usize / 3
+  ms_length / 3
 }
 
-fn entropy_bits(ms_length: u8) -> usize {
+fn entropy_bits(ms_length: usize) -> usize {
   // ENT in bits
-  32 * ms_length as usize / 3
+  32 * ms_length / 3
 }
 
-fn entropy_bytes(ms_length: u8) -> usize {
+fn entropy_bytes(ms_length: usize) -> usize {
   // ENT in bytes (always byte-aligned)
   entropy_bits(ms_length) / 8
 }
@@ -71,14 +71,13 @@ fn derive_seed(passphrase: &str, mnemonic: &str) -> String {
   bytes_to_hex(&res)
 }
 
-fn random_mnemonic_sentence(ms_length: u8, entropy: Option<Vec<u8>>) -> String {
+fn random_mnemonic_sentence(ms_length: usize, entropy: Option<Vec<u8>>) -> String {
   let entropy_len = entropy_bytes(ms_length);
   let entropy = entropy.unwrap_or_else(|| {
     let mut v = vec![0u8; entropy_len];
     getrandom::fill(&mut v).expect("failed to generate entropy");
     v
   });
-
   debug_assert!((12..=24).contains(&ms_length) && ms_length % 3 == 0);
   debug_assert_eq!(entropy.len(), entropy_len);
 
@@ -109,7 +108,7 @@ fn run_cmd_seed(matches: &ArgMatches) {
 }
 
 fn run_cmd_new(matches: &ArgMatches) {
-  let num_words: u8 = *matches
+  let num_words: usize = *matches
     .get_one("wordcount")
     .expect("word count should have default value");
   println!("{}", random_mnemonic_sentence(num_words, None));
@@ -129,7 +128,7 @@ pub fn run() {
           arg!([WORD_COUNT] "Number of words in the mnemonic - must be 12, 15, 18, 21, or 24")
             .id("wordcount")
             .value_parser(clap::builder::ValueParser::new(|s: &str| {
-              match s.parse::<u8>() {
+              match s.parse::<usize>() {
                 Ok(ms_length) => {
                   if !(12..=24).contains(&ms_length) || ms_length % 3 != 0 {
                     Err("expected 12, 15, 18, 21, or 24")
